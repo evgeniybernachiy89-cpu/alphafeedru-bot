@@ -1,0 +1,66 @@
+import sqlite3
+import datetime
+
+DB_NAME = "/tmp/posts.db"   # на Render используем временную папку
+
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_url TEXT UNIQUE,
+            raw_text TEXT,
+            edited_text TEXT,
+            status TEXT DEFAULT 'draft',
+            created_at TIMESTAMP,
+            published_at TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def add_post(source_url, raw_text):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO posts (source_url, raw_text, created_at) VALUES (?,?,?)',
+                  (source_url, raw_text, datetime.datetime.now()))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+def get_pending_posts():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('SELECT id, raw_text FROM posts WHERE status="draft" AND edited_text IS NULL ORDER BY created_at LIMIT 10')
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def update_post_edited(post_id, edited_text):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('UPDATE posts SET edited_text=?, status="ready" WHERE id=?', (edited_text, post_id))
+    conn.commit()
+    conn.close()
+
+def get_ready_posts(limit=5):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('SELECT id, edited_text FROM posts WHERE status="ready" ORDER BY created_at LIMIT ?', (limit,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def mark_published(post_id):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('UPDATE posts SET status="published", published_at=? WHERE id=?', (datetime.datetime.now(), post_id))
+    conn.commit()
+    conn.close()
+
+init_db()
