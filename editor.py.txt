@@ -1,0 +1,26 @@
+import openai
+from config import OPENAI_API_KEY
+from database import get_pending_posts, update_post_edited
+
+openai.api_key = OPENAI_API_KEY
+
+def run():
+    posts = get_pending_posts()
+    for post_id, raw_text in posts:
+        print(f"Редактируем пост #{post_id}...")
+        prompt = f"Перепиши в стиле новостей для Telegram, добавь эмодзи, кратко:\n{raw_text}"
+        try:
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=300
+            )
+            edited = resp.choices[0].message.content.strip()
+            update_post_edited(post_id, edited)
+            print(f"Пост #{post_id} готов")
+        except Exception as e:
+            print(f"Ошибка OpenAI: {e}")
+
+if __name__ == "__main__":
+    run()
