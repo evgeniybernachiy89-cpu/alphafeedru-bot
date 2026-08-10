@@ -1,0 +1,16 @@
+import feedparser
+from config import RSS_FEEDS, KEYWORDS
+from database import add_post
+
+def run():
+    for url in RSS_FEEDS:
+        feed = feedparser.parse(url)
+        for entry in feed.entries:
+            raw_text = entry.title + " " + entry.description
+            if any(kw.lower() in raw_text.lower() for kw in KEYWORDS):
+                added = add_post(entry.link, raw_text)
+                if added:
+                    print(f"Найден пост: {entry.title}")
+
+if __name__ == "__main__":
+    run()
