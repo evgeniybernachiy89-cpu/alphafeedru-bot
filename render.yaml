@@ -1,0 +1,14 @@
+```yaml
+services:
+  - type: cron
+    name: alphafeedru-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    schedule: "0 9,15,21 * * *"   # UTC время: 9:00, 15:00, 21:00
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+```
